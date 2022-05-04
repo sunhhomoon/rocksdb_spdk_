@@ -62,6 +62,8 @@ struct ImmutableCFOptions {
 
   Env* env;
 
+  FileSystem* spdk_fs;//lemma
+
   FileSystem* fs;
 
   // Allow the OS to mmap file for reading sst tables. Default: false

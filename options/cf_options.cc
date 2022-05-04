@@ -812,6 +812,7 @@ ImmutableCFOptions::ImmutableCFOptions(const ImmutableDBOptions& db_options,
       rate_limiter(db_options.rate_limiter.get()),
       info_log_level(db_options.info_log_level),
       env(db_options.env),
+      spdk_fs(db_options.spdk_fs), //lemma
       fs(db_options.fs.get()),
       allow_mmap_reads(db_options.allow_mmap_reads),
       allow_mmap_writes(db_options.allow_mmap_writes),

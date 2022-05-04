@@ -25,6 +25,7 @@ struct ImmutableDBOptions {
   bool paranoid_checks;
   bool track_and_verify_wals_in_manifest;
   Env* env;
+  FileSystem* spdk_fs;//lemma
   std::shared_ptr<FileSystem> fs;
   std::shared_ptr<RateLimiter> rate_limiter;
   std::shared_ptr<SstFileManager> sst_file_manager;

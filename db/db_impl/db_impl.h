@@ -1057,6 +1057,7 @@ class DBImpl : public DB {
   std::shared_ptr<IOTracer> io_tracer_;
   const ImmutableDBOptions immutable_db_options_;
   FileSystemPtr fs_;
+  FileSystem* spdk_fs_;//lemma
   MutableDBOptions mutable_db_options_;
   Statistics* stats_;
   std::unordered_map<std::string, RecoveredTransaction*>

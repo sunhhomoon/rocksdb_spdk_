@@ -40,6 +40,31 @@ SstFileManagerImpl::SstFileManagerImpl(
       free_space_trigger_(0),
       cur_instance_(nullptr) {}
 
+//lemma
+SstFileManagerImpl::SstFileManagerImpl(
+    FileSystem* spdk_fs,
+    const std::shared_ptr<SystemClock>& clock,
+    const std::shared_ptr<FileSystem>& fs,
+    const std::shared_ptr<Logger>& logger, int64_t rate_bytes_per_sec,
+    double max_trash_db_ratio, uint64_t bytes_max_delete_chunk)
+    : spdk_fs_(spdk_fs),
+      clock_(clock),
+      fs_(fs),
+      logger_(logger),
+      total_files_size_(0),
+      in_progress_files_size_(0),
+      compaction_buffer_size_(0),
+      cur_compactions_reserved_size_(0),
+      max_allowed_space_(0),
+      delete_scheduler_(spdk_fs_, clock_, fs_.get(), rate_bytes_per_sec, logger.get(),
+                        this, max_trash_db_ratio, bytes_max_delete_chunk),
+      cv_(&mu_),
+      closing_(false),
+      bg_thread_(nullptr),
+      reserved_disk_buffer_(0),
+      free_space_trigger_(0),
+      cur_instance_(nullptr) {}
+
 SstFileManagerImpl::~SstFileManagerImpl() {
   Close();
   bg_err_.PermitUncheckedError();
@@ -62,7 +87,12 @@ void SstFileManagerImpl::Close() {
 Status SstFileManagerImpl::OnAddFile(const std::string& file_path,
                                      bool compaction) {
   uint64_t file_size;
-  Status s = fs_->GetFileSize(file_path, IOOptions(), &file_size, nullptr);
+  Status s;
+  if(file_path[file_path.size()-1] != 't' && file_path[file_path.size()-1] != 'g'){
+    s = fs_->GetFileSize(file_path, IOOptions(), &file_size, nullptr);
+  } else {
+    s = spdk_fs_->GetFileSize(file_path, IOOptions(), &file_size, nullptr);
+  }
   if (s.ok()) {
     MutexLock l(&mu_);
     OnAddFileImpl(file_path, file_size, compaction);
@@ -530,6 +560,62 @@ SstFileManager* NewSstFileManager(Env* env, std::shared_ptr<FileSystem> fs,
 
   return res;
 }
+
+
+//lemma
+SstFileManager* NewSstFileManager(FileSystem* spdk_fs, Env* env, std::shared_ptr<Logger> info_log,
+                                  std::string trash_dir,
+                                  int64_t rate_bytes_per_sec,
+                                  bool delete_existing_trash, Status* status,
+                                  double max_trash_db_ratio,
+                                  uint64_t bytes_max_delete_chunk) {
+  const auto& fs = env->GetFileSystem();
+  return NewSstFileManager(spdk_fs, env, fs, info_log, trash_dir, rate_bytes_per_sec,
+                           delete_existing_trash, status, max_trash_db_ratio,
+                           bytes_max_delete_chunk);
+}
+
+SstFileManager* NewSstFileManager(FileSystem* spdk_fs, Env* env, std::shared_ptr<FileSystem> fs,
+                                  std::shared_ptr<Logger> info_log,
+                                  const std::string& trash_dir,
+                                  int64_t rate_bytes_per_sec,
+                                  bool delete_existing_trash, Status* status,
+                                  double max_trash_db_ratio,
+                                  uint64_t bytes_max_delete_chunk) {
+  const auto& clock = env->GetSystemClock();
+  SstFileManagerImpl* res =
+      new SstFileManagerImpl(spdk_fs, clock, fs, info_log, rate_bytes_per_sec,
+                             max_trash_db_ratio, bytes_max_delete_chunk);
+
+  // trash_dir is deprecated and not needed anymore, but if user passed it
+  // we will still remove files in it.
+  Status s = Status::OK();
+  if (delete_existing_trash && trash_dir != "") {
+    std::vector<std::string> files_in_trash;
+    s = fs->GetChildren(trash_dir, IOOptions(), &files_in_trash, nullptr);
+    if (s.ok()) {
+      for (const std::string& trash_file : files_in_trash) {
+        std::string path_in_trash = trash_dir + "/" + trash_file;
+        res->OnAddFile(path_in_trash);
+        Status file_delete =
+            res->ScheduleFileDeletion(path_in_trash, trash_dir);
+        if (s.ok() && !file_delete.ok()) {
+          s = file_delete;
+        }
+      }
+    }
+  }
+
+  if (status) {
+    *status = s;
+  } else {
+    // No one passed us a Status, so they must not care about the error...
+    s.PermitUncheckedError();
+  }
+
+  return res;
+}
+///lemma
 
 #else
 

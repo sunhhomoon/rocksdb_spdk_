@@ -104,19 +104,23 @@ Status TableCache::GetTableReader(
     size_t max_file_size_for_l0_meta_pin) {
   std::string fname =
       TableFileName(ioptions_.cf_paths, fd.GetNumber(), fd.GetPathId());
+  //fprintf(stderr, "askdjf;saldfj %s %d\n", fname.c_str(), ioptions_.spdk_fs == nullptr);
   std::unique_ptr<FSRandomAccessFile> file;
   FileOptions fopts = file_options;
   const auto& clock = ioptions_.env->GetSystemClock();
   Status s = PrepareIOFromReadOptions(ro, clock, fopts.io_options);
   if (s.ok()) {
-    s = ioptions_.fs->NewRandomAccessFile(fname, fopts, &file, nullptr);
+    //s = ioptions_.fs->NewRandomAccessFile(fname, fopts, &file, nullptr);//lemma
+    s = ioptions_.spdk_fs->NewRandomAccessFile(fname, fopts, &file, nullptr);
   }
   RecordTick(ioptions_.statistics, NO_FILE_OPENS);
   if (s.IsPathNotFound()) {
     fname = Rocks2LevelTableFileName(fname);
     s = PrepareIOFromReadOptions(ro, clock, fopts.io_options);
     if (s.ok()) {
-      s = ioptions_.fs->NewRandomAccessFile(fname, file_options, &file,
+      //s = ioptions_.fs->NewRandomAccessFile(fname, file_options, &file,
+      //                                      nullptr);
+      s = ioptions_.spdk_fs->NewRandomAccessFile(fname, file_options, &file,
                                             nullptr);
     }
     RecordTick(ioptions_.statistics, NO_FILE_OPENS);

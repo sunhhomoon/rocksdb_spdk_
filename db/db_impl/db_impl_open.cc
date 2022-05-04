@@ -22,6 +22,7 @@
 #include "rocksdb/wal_filter.h"
 #include "test_util/sync_point.h"
 #include "util/rate_limiter.h"
+//#include "lemma/spdk_hello.h"
 
 namespace ROCKSDB_NAMESPACE {
 Options SanitizeOptions(const std::string& dbname, const Options& src) {
@@ -172,7 +173,7 @@ DBOptions SanitizeOptions(const std::string& dbname, const DBOptions& src) {
   // and facilitating recovery from out of space errors.
   if (result.sst_file_manager.get() == nullptr) {
     std::shared_ptr<SstFileManager> sst_file_manager(
-        NewSstFileManager(result.env, result.info_log));
+        NewSstFileManager(result.spdk_fs, result.env, result.info_log));
     result.sst_file_manager = sst_file_manager;
   }
 #endif
@@ -370,21 +371,25 @@ Status DBImpl::Recover(
     const std::vector<ColumnFamilyDescriptor>& column_families, bool read_only,
     bool error_if_wal_file_exists, bool error_if_data_exists_in_wals,
     uint64_t* recovered_seq) {
+//  fprintf(stderr, "DBImpl::Recover 111\n");//lemma
   mutex_.AssertHeld();
 
   bool is_new_db = false;
   assert(db_lock_ == nullptr);
   std::vector<std::string> files_in_dbname;
   if (!read_only) {
+//  fprintf(stderr, "DBImpl::Recover 222\n");//lemma
     Status s = directories_.SetDirectories(fs_.get(), dbname_,
                                            immutable_db_options_.wal_dir,
                                            immutable_db_options_.db_paths);
     if (!s.ok()) {
+//  fprintf(stderr, "DBImpl::Recover 333\n");//lemma
       return s;
     }
 
     s = env_->LockFile(LockFileName(dbname_), &db_lock_);
     if (!s.ok()) {
+//  fprintf(stderr, "DBImpl::Recover 444\n");//lemma
       return s;
     }
 
@@ -420,20 +425,24 @@ Status DBImpl::Recover(
         s = NewDB(&files_in_dbname);
         is_new_db = true;
         if (!s.ok()) {
+//  fprintf(stderr, "DBImpl::Recover 555\n");//lemma
           return s;
         }
       } else {
+//  fprintf(stderr, "DBImpl::Recover 666\n");//lemma
         return Status::InvalidArgument(
             current_fname, "does not exist (create_if_missing is false)");
       }
     } else if (s.ok()) {
       if (immutable_db_options_.error_if_exists) {
+//  fprintf(stderr, "DBImpl::Recover 777\n");//lemma
         return Status::InvalidArgument(dbname_,
                                        "exists (error_if_exists is true)");
       }
     } else {
       // Unexpected error reading file
       assert(s.IsIOError());
+//  fprintf(stderr, "DBImpl::Recover 888\n");//lemma
       return s;
     }
     // Verify compatibility of file_options_ and filesystem
@@ -451,41 +460,51 @@ Status DBImpl::Recover(
         customized_fs.use_direct_reads = false;
         s = fs_->NewRandomAccessFile(fname, customized_fs, &idfile, nullptr);
         if (s.ok()) {
+//  fprintf(stderr, "DBImpl::Recover 999\n");//lemma
           return Status::InvalidArgument(
               "Direct I/O is not supported by the specified DB.");
         } else {
+//  fprintf(stderr, "DBImpl::Recover 10 10\n");//lemma
           return Status::InvalidArgument(
               "Found options incompatible with filesystem", error_str.c_str());
         }
       }
     }
   } else if (immutable_db_options_.best_efforts_recovery) {
+//  fprintf(stderr, "DBImpl::Recover 11 11\n");//lemma
     assert(files_in_dbname.empty());
     Status s = env_->GetChildren(dbname_, &files_in_dbname);
     if (s.IsNotFound()) {
+//  fprintf(stderr, "DBImpl::Recover 12 12\n");//lemma
       return Status::InvalidArgument(dbname_,
                                      "does not exist (open for read only)");
     } else if (s.IsIOError()) {
+//  fprintf(stderr, "DBImpl::Recover 13 13\n");//lemma
       return s;
     }
     assert(s.ok());
   }
+//  fprintf(stderr, "DBImpl::Recover 14 14\n");//lemma
   assert(db_id_.empty());
   Status s;
   bool missing_table_file = false;
   if (!immutable_db_options_.best_efforts_recovery) {
+//  fprintf(stderr, "DBImpl::Recover 15 15\n");//lemma
     s = versions_->Recover(column_families, read_only, &db_id_);
   } else {
+//  fprintf(stderr, "DBImpl::Recover 16 16\n");//lemma
     assert(!files_in_dbname.empty());
     s = versions_->TryRecover(column_families, read_only, files_in_dbname,
                               &db_id_, &missing_table_file);
     if (s.ok()) {
+//  fprintf(stderr, "DBImpl::Recover 17 17\n");//lemma
       // TryRecover may delete previous column_family_set_.
       column_family_memtables_.reset(
           new ColumnFamilyMemTablesImpl(versions_->GetColumnFamilySet()));
     }
   }
   if (!s.ok()) {
+//  fprintf(stderr, "DBImpl::Recover 18 18\n");//lemma
     return s;
   }
   s = SetDBId();
@@ -501,6 +520,7 @@ Status DBImpl::Recover(
     for (auto cfd : *versions_->GetColumnFamilySet()) {
       s = cfd->AddDirectories(&created_dirs);
       if (!s.ok()) {
+//  fprintf(stderr, "DBImpl::Recover 19 19\n");//lemma
         return s;
       }
     }
@@ -541,9 +561,11 @@ Status DBImpl::Recover(
       s = env_->GetChildren(immutable_db_options_.wal_dir, &files_in_wal_dir);
     }
     if (s.IsNotFound()) {
+//  fprintf(stderr, "DBImpl::Recover 20 20\n");//lemma
       return Status::InvalidArgument("wal_dir not found",
                                      immutable_db_options_.wal_dir);
     } else if (!s.ok()) {
+//  fprintf(stderr, "DBImpl::Recover 21 21\n");//lemma
       return s;
     }
 
@@ -553,6 +575,7 @@ Status DBImpl::Recover(
       FileType type;
       if (ParseFileName(file, &number, &type) && type == kWalFile) {
         if (is_new_db) {
+//  fprintf(stderr, "DBImpl::Recover 22 22\n");//lemma
           return Status::Corruption(
               "While creating a new Db, wal_dir contains "
               "existing log file: ",
@@ -582,11 +605,13 @@ Status DBImpl::Recover(
       s = versions_->LogAndApplyToDefaultColumnFamily(&edit, &mutex_);
     }
     if (!s.ok()) {
+//  fprintf(stderr, "DBImpl::Recover 23 23\n");//lemma
       return s;
     }
 
     if (!wal_files.empty()) {
       if (error_if_wal_file_exists) {
+//  fprintf(stderr, "DBImpl::Recover 24 24\n");//lemma
         return Status::Corruption(
             "The db was opened in readonly mode with error_if_wal_file_exists"
             "flag but a WAL file already exists");
@@ -596,6 +621,7 @@ Status DBImpl::Recover(
           s = env_->GetFileSize(wal_file.second, &bytes);
           if (s.ok()) {
             if (bytes > 0) {
+//  fprintf(stderr, "DBImpl::Recover 25 25\n");//lemma
               return Status::Corruption(
                   "error_if_data_exists_in_wals is set but there are data "
                   " in WAL files.");
@@ -631,6 +657,7 @@ Status DBImpl::Recover(
   }
 
   if (read_only) {
+//  fprintf(stderr, "DBImpl::Recover 26 26\n");//lemma
     // If we are opening as read-only, we need to update options_file_number_
     // to reflect the most recent OPTIONS file. It does not matter for regular
     // read-write db instance because options_file_number_ will later be
@@ -660,6 +687,7 @@ Status DBImpl::Recover(
       versions_->options_file_number_ = options_file_number;
     }
   }
+//  fprintf(stderr, "DBImpl::Recover 27 27\n");//lemma
   return s;
 }
 
@@ -1350,6 +1378,8 @@ Status DBImpl::WriteLevel0TableForRecovery(int job_id, ColumnFamilyData* cfd,
       }
 
       IOStatus io_s;
+      file_options_for_compaction_.pre_allocate_size =  mem->get_data_size() * 2;//lemma
+      fprintf(stderr, "Level0 ~~ %lu\n", file_options_for_compaction_.pre_allocate_size);//lemma
       s = BuildTable(
           dbname_, versions_.get(), immutable_db_options_, *cfd->ioptions(),
           mutable_cf_options, file_options_for_compaction_, cfd->table_cache(),
@@ -1423,6 +1453,19 @@ Status DBImpl::WriteLevel0TableForRecovery(int job_id, ColumnFamilyData* cfd,
 Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   DBOptions db_options(options);
   ColumnFamilyOptions cf_options(options);
+  db_options.spdk_open_mode = 0;
+  //lemma
+  /*if (_g_namespaces && _g_controllers)
+    fprintf(stderr, "!\n");
+  SpdkHello spdk_hello;
+  spdk_hello.hello_world();
+  spdk_hello.cleanup();*/
+  /*Env* spdk_env = NewSpdkEnv(Env::Default(), "trtype:PCIe traddr:0000:86:00.0", options, 0);
+  std::unique_ptr<WritableFile> tmp_file;
+  const EnvOptions tmp_env_opt(db_options);
+  const std::string tmp_file_name = "test";
+  spdk_env->NewWritableFile(tmp_file_name, &tmp_file, tmp_env_opt);*/
+  //lemma
   std::vector<ColumnFamilyDescriptor> column_families;
   column_families.push_back(
       ColumnFamilyDescriptor(kDefaultColumnFamilyName, cf_options));
@@ -1451,9 +1494,14 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
 Status DB::Open(const DBOptions& db_options, const std::string& dbname,
                 const std::vector<ColumnFamilyDescriptor>& column_families,
                 std::vector<ColumnFamilyHandle*>* handles, DB** dbptr) {
+  DBOptions db_options1 = db_options;
+  //db_options1.SetSpdkEnv("trtype:PCIe traddr:0000:86:00.0");//lemma
+  db_options1.SetSpdkEnv("trtype:RDMA adrfam:IPv4 traddr:10.0.0.11 trsvcid:4420 subnqn:nqn.2016-06.io.spdk:cnode1");//lemma
+  fprintf(stderr, "DB::Open 222 %d\n", db_options1.spdk_fs == nullptr);
+  //lemmalemma
   const bool kSeqPerBatch = true;
   const bool kBatchPerTxn = true;
-  return DBImpl::Open(db_options, dbname, column_families, handles, dbptr,
+  return DBImpl::Open(db_options1, dbname, column_families, handles, dbptr,
                       !kSeqPerBatch, kBatchPerTxn);
 }
 
@@ -1467,8 +1515,10 @@ IOStatus DBImpl::CreateWAL(uint64_t log_file_num, uint64_t recycle_log_number,
       BuildDBOptions(immutable_db_options_, mutable_db_options_);
   FileOptions opt_file_options =
       fs_->OptimizeForLogWrite(file_options_, db_options);
+  opt_file_options.pre_allocate_size = preallocate_block_size;//lemma
   std::string log_fname =
       LogFileName(immutable_db_options_.wal_dir, log_file_num);
+
 
   if (recycle_log_number) {
     ROCKS_LOG_INFO(immutable_db_options_.info_log,
@@ -1478,10 +1528,14 @@ IOStatus DBImpl::CreateWAL(uint64_t log_file_num, uint64_t recycle_log_number,
         LogFileName(immutable_db_options_.wal_dir, recycle_log_number);
     TEST_SYNC_POINT("DBImpl::CreateWAL:BeforeReuseWritableFile1");
     TEST_SYNC_POINT("DBImpl::CreateWAL:BeforeReuseWritableFile2");
-    io_s = fs_->ReuseWritableFile(log_fname, old_log_fname, opt_file_options,
-                                  &lfile, /*dbg=*/nullptr);
+    //io_s = fs_->ReuseWritableFile(log_fname, old_log_fname, opt_file_options,
+    //                              &lfile, /*dbg=*/nullptr);
+    io_s = spdk_fs_->ReuseWritableFile(log_fname, old_log_fname, opt_file_options,
+                                  &lfile, /*dbg=*/nullptr);//lemma
   } else {
-    io_s = NewWritableFile(fs_.get(), log_fname, &lfile, opt_file_options);
+    //io_s = NewWritableFile(fs_.get(), log_fname, &lfile, opt_file_options);
+    //io_s = NewWritableFile(spdk_fs, log_fname, &lfile, opt_file_options);//lemma
+    io_s = spdk_fs_->NewWritableFile(log_fname, opt_file_options, &lfile, nullptr);
   }
 
   if (io_s.ok()) {
@@ -1505,6 +1559,7 @@ Status DBImpl::Open(const DBOptions& db_options, const std::string& dbname,
                     const std::vector<ColumnFamilyDescriptor>& column_families,
                     std::vector<ColumnFamilyHandle*>* handles, DB** dbptr,
                     const bool seq_per_batch, const bool batch_per_txn) {
+  fprintf(stderr, "#$####################################### %d \n", db_options.spdk_fs == nullptr);
   Status s = ValidateOptionsByTable(db_options, column_families);
   if (!s.ok()) {
     return s;

@@ -155,6 +155,7 @@ DBImpl::DBImpl(const DBOptions& options, const std::string& dbname,
       io_tracer_(std::make_shared<IOTracer>()),
       immutable_db_options_(initial_db_options_),
       fs_(immutable_db_options_.fs, io_tracer_),
+      spdk_fs_(options.spdk_fs),//lemma
       mutable_db_options_(initial_db_options_),
       stats_(immutable_db_options_.statistics.get()),
       mutex_(stats_, clock_, DB_MUTEX_WAIT_MICROS,
@@ -3772,7 +3773,12 @@ Status DBImpl::CheckConsistency() {
 
       uint64_t fsize = 0;
       TEST_SYNC_POINT("DBImpl::CheckConsistency:BeforeGetFileSize");
-      Status s = env_->GetFileSize(file_path, &fsize);
+      Status s;
+      if(file_path[file_path.size()-1] != 't' && file_path[file_path.size()-1] != 'g'){
+        s = env_->GetFileSize(file_path, &fsize);
+      }else{
+        s = spdk_fs_->GetFileSize(file_path, IOOptions(), &fsize, nullptr);
+      }//lemma
       if (!s.ok() &&
           env_->GetFileSize(Rocks2LevelTableFileName(file_path), &fsize).ok()) {
         s = Status::OK();

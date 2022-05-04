@@ -61,6 +61,8 @@ struct ThreadStatus;
 class FileSystem;
 class SystemClock;
 
+struct Options;
+
 const size_t kDefaultPageSize = 4 * 1024;
 
 enum class CpuPriority {

@@ -113,7 +113,15 @@ ColumnFamilyOptions::ColumnFamilyOptions(const Options& options)
 
 DBOptions::DBOptions() {}
 DBOptions::DBOptions(const Options& options)
-    : DBOptions(*static_cast<const DBOptions*>(&options)) {}
+    : DBOptions(*static_cast<const DBOptions*>(&options)) {
+  //fprintf(stderr, "NewSpdkEnv \n");//lemma
+  //spdk_fs = NewSpdkEnv(env->GetFileSystem(), env, "trtype:PCIe traddr:0000:86:00.0", options, 0);
+}//lemma
+
+void DBOptions::SetSpdkEnv(std::string addr) {
+  fprintf(stderr, "NewSpdkEnv \n");//lemma
+  spdk_fs = NewSpdkEnv(env->GetFileSystem(), env, addr, spdk_open_mode);
+}
 
 void DBOptions::Dump(Logger* log) const {
     ImmutableDBOptions(*this).Dump(log);

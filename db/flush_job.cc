@@ -405,9 +405,11 @@ Status FlushJob::WriteLevel0Table() {
       IOStatus io_s;
       const std::string* const full_history_ts_low =
           (full_history_ts_low_.empty()) ? nullptr : &full_history_ts_low_;
+      FileOptions file_options_tmp = file_options_;
+      file_options_tmp.pre_allocate_size = GetMemTables().size() * mutable_cf_options_.write_buffer_size;
       s = BuildTable(
           dbname_, versions_, db_options_, *cfd_->ioptions(),
-          mutable_cf_options_, file_options_, cfd_->table_cache(), iter.get(),
+          mutable_cf_options_, file_options_tmp, cfd_->table_cache(), iter.get(),
           std::move(range_del_iters), &meta_, &blob_file_additions,
           cfd_->internal_comparator(), cfd_->int_tbl_prop_collector_factories(),
           cfd_->GetID(), cfd_->GetName(), existing_snapshots_,

@@ -1677,8 +1677,12 @@ Status CompactionJob::OpenCompactionOutputFile(
                            &syncpoint_arg);
 #endif
   Status s;
+  //IOStatus io_s =
+  //    NewWritableFile(fs_.get(), fname, &writable_file, file_options_);
+  FileOptions file_options_tmp = file_options_;
+  file_options_tmp.pre_allocate_size = static_cast<size_t>(sub_compact->compaction->SpdkOutputFilePreallocationSize());//lemma
   IOStatus io_s =
-      NewWritableFile(fs_.get(), fname, &writable_file, file_options_);
+      db_options_.spdk_fs->NewWritableFile(fname, file_options_tmp, &writable_file, nullptr);//lemma
   s = io_s;
   if (sub_compact->io_status.ok()) {
     sub_compact->io_status = io_s;

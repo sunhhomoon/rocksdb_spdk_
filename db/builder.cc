@@ -122,6 +122,7 @@ Status BuildTable(
       ioptions.listeners, dbname, column_family_name, fname, job_id, reason);
 #endif  // !ROCKSDB_LITE
   Env* env = db_options.env;
+  FileSystem* spdk_fs = db_options.spdk_fs;//lemma
   assert(env);
   FileSystem* fs = db_options.fs.get();
   assert(fs);
@@ -137,7 +138,9 @@ Status BuildTable(
       bool use_direct_writes = file_options.use_direct_writes;
       TEST_SYNC_POINT_CALLBACK("BuildTable:create_file", &use_direct_writes);
 #endif  // !NDEBUG
-      IOStatus io_s = NewWritableFile(fs, fname, &file, file_options);
+      //IOStatus io_s = NewWritableFile(fs, fname, &file, file_options);
+      IOStatus io_s = NewWritableFile(spdk_fs, fname, &file, file_options);
+      //IOStatus io_s = spdk_fs->NewWritableFile(fname, file_options, &file, nullptr);
       assert(s.ok());
       s = io_s;
       if (io_status->ok()) {

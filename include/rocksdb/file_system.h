@@ -100,6 +100,8 @@ struct FileOptions : EnvOptions {
   // to be issued for the file open/creation
   IOOptions io_options;
 
+  uint64_t pre_allocate_size;//lemma
+
   // The checksum type that is used to calculate the checksum value for
   // handoff during file writes.
   ChecksumType handoff_checksum_type;
@@ -1096,6 +1098,7 @@ class FileSystemWrapper : public FileSystem {
                            IODebugContext* dbg) override {
     return target_->NewWritableFile(f, file_opts, r, dbg);
   }
+
   IOStatus ReopenWritableFile(const std::string& fname,
                               const FileOptions& file_opts,
                               std::unique_ptr<FSWritableFile>* result,
@@ -1477,6 +1480,9 @@ class FSDirectoryWrapper : public FSDirectory {
   FSDirectory* target_;
 };
 
+//lemma
+FileSystem* NewSpdkEnv(const std::shared_ptr<FileSystem>& base_fs);
+FileSystem* NewSpdkEnv(const std::shared_ptr<FileSystem>& base_fs, Env* base_env, std::string pcie_addr, int open_mod);//const Options &opt, int open_mod);
 // A utility routine: write "data" to the named file.
 extern IOStatus WriteStringToFile(FileSystem* fs, const Slice& data,
                                   const std::string& fname,

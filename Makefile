@@ -22,6 +22,8 @@ MACHINE ?= $(shell uname -m)
 ARFLAGS = ${EXTRA_ARFLAGS} rs
 STRIPFLAGS = -S -x
 
+CXXFLAGS += -isystem /lemma2/spdk_rocksdb/spdk/include
+
 # Transform parallel LOG output into something more readable.
 perl_command = perl -n \
   -e '@a=split("\t",$$_,-1); $$t=$$a[8];'				\
@@ -176,6 +178,8 @@ endif
 # if we're compiling for release, compile without debug code (-DNDEBUG)
 ifeq ($(DEBUG_LEVEL),0)
 OPT += -DNDEBUG
+
+#USE_RTTI=1#lemma
 
 ifneq ($(USE_RTTI), 1)
 	CXXFLAGS += -fno-rtti
@@ -492,6 +496,9 @@ ifeq ($(HAVE_POWER8),1)
 LIB_OBJECTS += $(patsubst %.c, $(OBJ_DIR)/%.o, $(LIB_SOURCES_C))
 LIB_OBJECTS += $(patsubst %.S, $(OBJ_DIR)/%.o, $(LIB_SOURCES_ASM))
 endif
+#LIB_OBJECTS += $(OBJ_DIR)/grpc/compaction_data.grpc.pb.cc.o#lemma 
+#LIB_OBJECTS += $(OBJ_DIR)/grpc/compaction_data.pb.cc.o#lemma
+#LIB_OBJECTS += $(OBJ_DIR)/grpc/grpc_lemma.cc.o#lemma
 
 ifeq ($(USE_FOLLY_DISTRIBUTED_MUTEX),1)
   LIB_OBJECTS += $(patsubst %.cpp, $(OBJ_DIR)/%.o, $(FOLLY_SOURCES))
@@ -865,6 +872,7 @@ else
 	git_date := $(shell git log -1 --date=format:"%Y-%m-%d %T" --format="%ad" 2>/dev/null)
 endif
 gen_build_version = sed -e s/@GIT_SHA@/$(git_sha)/ -e s:@GIT_TAG@:"$(git_tag)": -e s/@GIT_MOD@/"$(git_mod)"/ -e s/@BUILD_DATE@/"$(build_date)"/ -e s/@GIT_DATE@/"$(git_date)"/ util/build_version.cc.in
+
 
 # Record the version of the source that we are compiling.
 # We keep a record of the git revision in this file.  It is then built
@@ -2301,14 +2309,20 @@ endif
 	$(MAKE) rocksdbjavastatic_deps
 	$(MAKE) rocksdbjavastatic_libobjects
 	$(MAKE) rocksdbjavastatic_javalib
+#LEMMA_GRPC_FLAGS = /usr/local/lib/libgrpc++_reflection.a /usr/local/lib/libgrpc++.a /usr/local/lib/libprotobuf.a /usr/local/lib/libgrpc.a /usr/local/lib/libssl.a /usr/local/lib/libcrypto.a /usr/local/lib/libz.a /usr/local/lib/libcares.a -lnsl /usr/local/lib/libre2.a /usr/local/lib/libabsl_statusor.a /usr/local/lib/libabsl_hash.a /usr/local/lib/libabsl_bad_variant_access.a /usr/local/lib/libabsl_city.a /usr/local/lib/libabsl_raw_hash_set.a /usr/local/lib/libabsl_hashtablez_sampler.a /usr/local/lib/libabsl_exponential_biased.a /usr/local/lib/libgpr.a /usr/local/lib/libabsl_status.a /usr/local/lib/libabsl_cord.a /usr/local/lib/libabsl_bad_optional_access.a /usr/local/lib/libabsl_synchronization.a /usr/local/lib/libabsl_stacktrace.a /usr/local/lib/libabsl_symbolize.a /usr/local/lib/libabsl_debugging_internal.a /usr/local/lib/libabsl_demangle_internal.a /usr/local/lib/libabsl_graphcycles_internal.a /usr/local/lib/libabsl_time.a /usr/local/lib/libabsl_civil_time.a /usr/local/lib/libabsl_time_zone.a /usr/local/lib/libabsl_malloc_internal.a /usr/local/lib/libabsl_str_format_internal.a /usr/local/lib/libabsl_strings.a /usr/local/lib/libabsl_strings_internal.a /usr/local/lib/libabsl_int128.a /usr/local/lib/libabsl_throw_delegate.a /usr/local/lib/libabsl_base.a /usr/local/lib/libabsl_raw_logging_internal.a /usr/local/lib/libabsl_log_severity.a /usr/local/lib/libabsl_spinlock_wait.a -lrt /usr/local/lib/libaddress_sorting.a /usr/local/lib/libupb.a -lm #lemma
 
-rocksdbjavastatic_javalib:
+#LEMMA_GRPC_FLAGS = /home/lemma/.local/lib/libgrpc++_reflection.a /home/lemma/.local/lib/libgrpc++.a /home/lemma/.local/lib/libprotobuf.a /home/lemma/.local/lib/libgrpc.a /home/lemma/.local/lib/libssl.a /home/lemma/.local/lib/libcrypto.a /home/lemma/.local/lib/libz.a /home/lemma/.local/lib/libcares.a -lnsl /home/lemma/.local/lib/libre2.a /home/lemma/.local/lib/libabsl_statusor.a /home/lemma/.local/lib/libabsl_hash.a /home/lemma/.local/lib/libabsl_bad_variant_access.a /home/lemma/.local/lib/libabsl_city.a /home/lemma/.local/lib/libabsl_raw_hash_set.a /home/lemma/.local/lib/libabsl_hashtablez_sampler.a /home/lemma/.local/lib/libabsl_exponential_biased.a /home/lemma/.local/lib/libgpr.a /home/lemma/.local/lib/libabsl_status.a /home/lemma/.local/lib/libabsl_cord.a /home/lemma/.local/lib/libabsl_bad_optional_access.a /home/lemma/.local/lib/libabsl_synchronization.a /home/lemma/.local/lib/libabsl_stacktrace.a /home/lemma/.local/lib/libabsl_symbolize.a /home/lemma/.local/lib/libabsl_debugging_internal.a /home/lemma/.local/lib/libabsl_demangle_internal.a /home/lemma/.local/lib/libabsl_graphcycles_internal.a /home/lemma/.local/lib/libabsl_time.a /home/lemma/.local/lib/libabsl_civil_time.a /home/lemma/.local/lib/libabsl_time_zone.a /home/lemma/.local/lib/libabsl_malloc_internal.a /home/lemma/.local/lib/libabsl_str_format_internal.a /home/lemma/.local/lib/libabsl_strings.a /home/lemma/.local/lib/libabsl_strings_internal.a /home/lemma/.local/lib/libabsl_int128.a /home/lemma/.local/lib/libabsl_throw_delegate.a /home/lemma/.local/lib/libabsl_base.a /home/lemma/.local/lib/libabsl_raw_logging_internal.a -lpthread /home/lemma/.local/lib/libabsl_log_severity.a /home/lemma/.local/lib/libabsl_spinlock_wait.a -lrt /home/lemma/.local/lib/libaddress_sorting.a /home/lemma/.local/lib/libupb.a -ldl -lrt -lm -lpthread 
+
+LEMMA_SPDK_FLAGS = -march=native -D_GNU_SOURCE -fPIC -fstack-protector -fno-common -I/lemma2/spdk_rocksdb/spdk/isa-l/.. -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -DSPDK_GIT_COMMIT=4ac203b2d -lssl -Wl,-z,relro,-z,now -Wl,-z,noexecstack -fuse-ld=bfd -L/lemma2/spdk_rocksdb/spdk/build/lib -Wl,--whole-archive -Wl,--no-as-needed -lspdk_sock_posix -lspdk_nvme -lspdk_sock -lspdk_rpc -lspdk_jsonrpc -lspdk_json -lspdk_rdma -lspdk_util -lspdk_dma -lspdk_vmd -lspdk_log -Wl,--no-whole-archive /lemma2/spdk_rocksdb/spdk/build/lib/libspdk_env_dpdk.a -Wl,-rpath-link /lemma2/spdk_rocksdb/spdk/dpdk/build/lib -Wl,--whole-archive /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_eal.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_mempool.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_ring.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_mbuf.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_bus_pci.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_pci.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_mempool_ring.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_power.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_ethdev.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_net.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_telemetry.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_kvargs.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_vhost.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_cryptodev.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_hash.a /lemma2/spdk_rocksdb/spdk/dpdk/build/lib/librte_rcu.a -Wl,--no-whole-archive  -lnuma -ldl  -libverbs -lrdmacm -L/lemma2/spdk_rocksdb/spdk/isa-l/.libs -lisal -pthread -lrt -luuid -lcrypto -lm -libverbs -lrdmacm -laio -ltbb
+
+rocksdbjavastatic_javalib: #lemma
 	cd java; SHA256_CMD='$(SHA256_CMD)' $(MAKE) javalib
 	rm -f java/target/$(ROCKSDBJNILIB)
 	$(CXX) $(CXXFLAGS) -I./java/. $(JAVA_INCLUDE) -shared -fPIC \
 	  -o ./java/target/$(ROCKSDBJNILIB) $(JNI_NATIVE_SOURCES) \
 	  $(LIB_OBJECTS) $(COVERAGEFLAGS) \
-	  $(JAVA_COMPRESSIONS) $(JAVA_STATIC_LDFLAGS)
+	  $(JAVA_COMPRESSIONS) $(JAVA_STATIC_LDFLAGS) \
+	  $(LEMMA_SPDK_FLAGS)
 	cd java/target;if [ "$(DEBUG_LEVEL)" == "0" ]; then \
 		strip $(STRIPFLAGS) $(ROCKSDBJNILIB); \
 	fi
@@ -2326,9 +2340,10 @@ rocksdbjavastatic_deps: $(JAVA_COMPRESSIONS)
 rocksdbjavastatic_libobjects: $(LIB_OBJECTS)
 
 rocksdbjavastaticrelease: rocksdbjavastatic
-	cd java/crossbuild && (vagrant destroy -f || true) && vagrant up linux32 && vagrant halt linux32 && vagrant up linux64 && vagrant halt linux64 && vagrant up linux64-musl && vagrant halt linux64-musl
+	#cd java/crossbuild && (vagrant destroy -f || true) && vagrant up linux32 && vagrant halt linux32 && vagrant up linux64 && vagrant halt linux64 && vagrant up linux64-musl && vagrant halt linux64-musl lemma
 	cd java;jar -cf target/$(ROCKSDB_JAR_ALL) HISTORY*.md
-	cd java/target;jar -uf $(ROCKSDB_JAR_ALL) librocksdbjni-*.so librocksdbjni-*.jnilib
+	#cd java/target;jar -uf $(ROCKSDB_JAR_ALL) librocksdbjni-*.so librocksdbjni-*.jnilib
+	cd java/target;jar -uf $(ROCKSDB_JAR_ALL) librocksdbjni-*.so
 	cd java/target/classes;jar -uf ../$(ROCKSDB_JAR_ALL) org/rocksdb/*.class org/rocksdb/util/*.class
 	openssl sha1 java/target/$(ROCKSDB_JAR_ALL) | sed 's/.*= \([0-9a-f]*\)/\1/' > java/target/$(ROCKSDB_JAR_ALL).sha1
 
@@ -2469,6 +2484,9 @@ $(OBJ_DIR)/%.o: %.cpp
 
 $(OBJ_DIR)/%.o: %.c
 	$(AM_V_CC)$(CC) $(CFLAGS) -c $< -o $@
+#$(OBJ_DIR)/%.o: %
+	#g++ -std=c++11 -isystem /home/lemma/.local/include -c $< -o $@ -fPIC #lemma
+	#g++ -std=c++11 `pkg-config --cflags protobuf grpc`  -c $< -o $@ -fPIC #lemma
 endif
 
 # ---------------------------------------------------------------------------
@@ -2544,3 +2562,4 @@ endif
 endif
 endif
 endif
+

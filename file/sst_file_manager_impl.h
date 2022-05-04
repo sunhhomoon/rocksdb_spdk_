@@ -33,6 +33,14 @@ class SstFileManagerImpl : public SstFileManager {
                               double max_trash_db_ratio,
                               uint64_t bytes_max_delete_chunk);
 
+  explicit SstFileManagerImpl(FileSystem* spdk_fs,
+                              const std::shared_ptr<SystemClock>& clock,
+                              const std::shared_ptr<FileSystem>& fs,
+                              const std::shared_ptr<Logger>& logger,
+                              int64_t rate_bytes_per_sec,
+                              double max_trash_db_ratio,
+                              uint64_t bytes_max_delete_chunk);
+
   ~SstFileManagerImpl();
 
   // DB will call OnAddFile whenever a new sst file is added.
@@ -152,6 +160,7 @@ class SstFileManagerImpl : public SstFileManager {
     return bg_err_.severity() == Status::Severity::kSoftError;
   }
 
+  FileSystem* spdk_fs_;//lemma
   std::shared_ptr<SystemClock> clock_;
   std::shared_ptr<FileSystem> fs_;
   std::shared_ptr<Logger> logger_;

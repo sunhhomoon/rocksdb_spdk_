@@ -45,6 +45,31 @@ DeleteScheduler::DeleteScheduler(const std::shared_ptr<SystemClock>& clock,
   MaybeCreateBackgroundThread();
 }
 
+//lemma
+DeleteScheduler::DeleteScheduler(FileSystem* spdk_fs, const std::shared_ptr<SystemClock>& clock,
+                                 FileSystem* fs, int64_t rate_bytes_per_sec,
+                                 Logger* info_log,
+                                 SstFileManagerImpl* sst_file_manager,
+                                 double max_trash_db_ratio,
+                                 uint64_t bytes_max_delete_chunk)
+    : spdk_fs_(spdk_fs),
+      clock_(clock),
+      fs_(fs),
+      total_trash_size_(0),
+      rate_bytes_per_sec_(rate_bytes_per_sec),
+      pending_files_(0),
+      bytes_max_delete_chunk_(bytes_max_delete_chunk),
+      closing_(false),
+      cv_(&mu_),
+      bg_thread_(nullptr),
+      info_log_(info_log),
+      sst_file_manager_(sst_file_manager),
+      max_trash_db_ratio_(max_trash_db_ratio) {
+  assert(sst_file_manager != nullptr);
+  assert(max_trash_db_ratio >= 0);
+  MaybeCreateBackgroundThread();
+}
+
 DeleteScheduler::~DeleteScheduler() {
   {
     InstrumentedMutexLock l(&mu_);
@@ -68,7 +93,12 @@ Status DeleteScheduler::DeleteFile(const std::string& file_path,
     // Rate limiting is disabled or trash size makes up more than
     // max_trash_db_ratio_ (default 25%) of the total DB size
     TEST_SYNC_POINT("DeleteScheduler::DeleteFile");
-    Status s = fs_->DeleteFile(file_path, IOOptions(), nullptr);
+    Status s;
+    if(file_path[file_path.size()-1] != 't' && file_path[file_path.size()-1] != 'g'){
+      s = fs_->DeleteFile(file_path, IOOptions(), nullptr);
+    }else{
+      s = spdk_fs_->DeleteFile(file_path, IOOptions(), nullptr);
+    }
     if (s.ok()) {
       s = sst_file_manager_->OnDeleteFile(file_path);
       ROCKS_LOG_INFO(info_log_,

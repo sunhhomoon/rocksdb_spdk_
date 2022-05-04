@@ -289,6 +289,22 @@ bool Compaction::InputCompressionMatchesOutput() const {
   return matches;
 }
 
+uint64_t Compaction::SpdkOutputFilePreallocationSize() const {//lemma
+  uint64_t preallocation_size = 0;
+  for (const auto& level_files : inputs_) {
+    for (const auto& file : level_files.files) {
+      preallocation_size += file->fd.GetFileSize();
+    }
+  }
+  if (max_output_file_size_ != port::kMaxUint64 &&
+      immutable_cf_options_.compaction_style == kCompactionStyleLevel &&
+      output_level() != 0) {
+    preallocation_size = std::min(max_output_file_size_, preallocation_size);
+  }
+  return preallocation_size;
+}
+
+
 bool Compaction::IsTrivialMove() const {
   // Avoid a move if there is lots of overlapping grandparent data.
   // Otherwise, the move could create a parent file that will require

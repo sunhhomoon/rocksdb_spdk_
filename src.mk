@@ -1,5 +1,7 @@
 # These are the sources from which librocksdb.a is built:
 LIB_SOURCES =                                                   \
+  lemma/spdk_device.cc                                          \
+  env/spdk_env.cc                                               \
   cache/cache.cc                                                \
   cache/clock_cache.cc                                          \
   cache/lru_cache.cc                                            \

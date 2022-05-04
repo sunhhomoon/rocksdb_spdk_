@@ -39,6 +39,12 @@ class DeleteScheduler {
                   SstFileManagerImpl* sst_file_manager,
                   double max_trash_db_ratio, uint64_t bytes_max_delete_chunk);
 
+  //lemma
+  DeleteScheduler(FileSystem* spdk_fs, const std::shared_ptr<SystemClock>& clock, FileSystem* fs,
+                  int64_t rate_bytes_per_sec, Logger* info_log,
+                  SstFileManagerImpl* sst_file_manager,
+                  double max_trash_db_ratio, uint64_t bytes_max_delete_chunk);
+
   ~DeleteScheduler();
 
   // Return delete rate limit in bytes per second
@@ -100,6 +106,8 @@ class DeleteScheduler {
   void BackgroundEmptyTrash();
 
   void MaybeCreateBackgroundThread();
+
+  FileSystem* spdk_fs_;//lemma
 
   const std::shared_ptr<SystemClock> clock_;
   FileSystem* fs_;

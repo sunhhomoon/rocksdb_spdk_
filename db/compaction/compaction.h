@@ -292,6 +292,8 @@ class Compaction {
     return grandparents_;
   }
 
+  uint64_t SpdkOutputFilePreallocationSize() const;//lemma
+
   uint64_t max_compaction_bytes() const { return max_compaction_bytes_; }
 
   uint32_t max_subcompactions() const { return max_subcompactions_; }

@@ -509,6 +509,7 @@ ImmutableDBOptions::ImmutableDBOptions(const DBOptions& options)
       track_and_verify_wals_in_manifest(
           options.track_and_verify_wals_in_manifest),
       env(options.env),
+      spdk_fs(options.spdk_fs), //lemma
       fs(options.env->GetFileSystem()),
       rate_limiter(options.rate_limiter),
       sst_file_manager(options.sst_file_manager),
